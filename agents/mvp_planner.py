@@ -3,43 +3,62 @@ import re
 from tools.ollama_runner import run_ollama
 
 def create_mvp_plan(parsed_idea: dict, swot: dict) -> dict:
-    solution = parsed_idea.get("solution", "")
-    industry = parsed_idea.get("industry", "")
-    strengths = swot.get("strengths", [])
-    weaknesses = swot.get("weaknesses", [])
+    industry = parsed_idea.get("industry", "tech")
+    solution = parsed_idea.get("solution", "A tech-enabled solution to a user pain point.")
+    strengths = swot.get("strengths", []) or ["Strong product-market fit"]
+    weaknesses = swot.get("weaknesses", []) or ["Limited budget"]
 
     prompt = f"""
-You are a product manager.
+You are an expert product manager.
 
-You're building an MVP for a startup in the industry: "{industry}".
+You are helping build an MVP for a startup in the "{industry}" industry.
 
-Product concept: {solution}
+Product Concept:
+{solution}
 
-Strengths: {', '.join(strengths)}
-Weaknesses: {', '.join(weaknesses)}
+Key Strengths: {', '.join(strengths)}
+Key Weaknesses: {', '.join(weaknesses)}
 
-Return a valid JSON object with:
+Based on this, return ONLY a valid JSON with the following structure:
+
 {{
-  "features": ["List 3–5 key MVP features"],
+  "features": ["List 3–5 MVP features"],
   "tech_stack": {{
     "frontend": "...",
     "backend": "...",
     "database": "...",
-    "other": "Optional libraries/services"
+    "other": ["Optional tools, APIs, or services"]
   }},
-  "timeline": "Estimate dev time (e.g., 4–6 weeks)",
-  "risks": ["Technical or business risks (2–4)"]
+  "timeline": "Time to develop MVP (e.g. 6-8 weeks)",
+  "risks": ["List 2–4 key risks"]
 }}
 
-No extra text. Only return valid JSON.
+Respond with only JSON. No explanation.
 """
 
     output = run_ollama(prompt)
 
     try:
+        # Extract JSON block from model output
         json_block = re.search(r"\{[\s\S]*\}", output).group(0)
         parsed = json.loads(json_block)
+
+        # Optional: Validate that key fields exist
+        if not all(k in parsed for k in ["features", "tech_stack", "timeline", "risks"]):
+            raise ValueError("Missing keys in parsed response")
+
     except Exception:
-        parsed = {"raw_output": output}
+        parsed = {
+            "features": [],
+            "tech_stack": {
+                "frontend": "",
+                "backend": "",
+                "database": "",
+                "other": []
+            },
+            "timeline": "",
+            "risks": [],
+            "raw_output": output
+        }
 
     return parsed
