@@ -3,37 +3,49 @@ import re
 from tools.ollama_runner import run_ollama
 
 def generate_swot(parsed_idea: dict, market: dict) -> dict:
-    industry = parsed_idea.get("industry", "")
-    solution = parsed_idea.get("solution", "")
-    competitors = market.get("competitors", [])
-    trends = market.get("trends", [])
+    industry = parsed_idea.get("industry", "technology")
+    solution = parsed_idea.get("solution", "A digital platform addressing a common user pain point.")
+    competitors = market.get("competitors", []) or ["Generic competitor A", "Generic competitor B"]
+    trends = market.get("trends", []) or ["Trend A", "Trend B"]
 
     prompt = f"""
-You are a business strategy assistant.
+You are a startup strategy assistant.
 
-Here is a startup idea in the {industry} industry:
+Please perform a SWOT analysis for a startup with the following details:
+
+Industry: {industry}
 Solution: {solution}
 Competitors: {', '.join(competitors)}
 Trends: {', '.join(trends)}
 
-Perform a SWOT analysis and return only this valid JSON:
+Respond ONLY with valid JSON using this format:
+
 {{
   "strengths": ["..."],
   "weaknesses": ["..."],
   "opportunities": ["..."],
   "threats": ["..."]
 }}
-
-Strictly return only JSON. No explanation or questions.
 """
-
 
     output = run_ollama(prompt)
 
     try:
         json_block = re.search(r"\{[\s\S]*\}", output).group(0)
         parsed = json.loads(json_block)
+
+        # Ensure all 4 keys exist
+        required_keys = ["strengths", "weaknesses", "opportunities", "threats"]
+        if not all(k in parsed for k in required_keys):
+            raise ValueError("Missing SWOT keys")
+
     except Exception:
-        parsed = {"raw_output": output}
+        parsed = {
+            "strengths": [],
+            "weaknesses": [],
+            "opportunities": [],
+            "threats": [],
+            "raw_output": output
+        }
 
     return parsed
