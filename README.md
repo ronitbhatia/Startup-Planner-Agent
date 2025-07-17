@@ -69,7 +69,7 @@ The app will open in your browser at `http://localhost:8501`
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 startup-planner-agent/
@@ -88,7 +88,7 @@ startup-planner-agent/
 ---
 
 
-## 🔒 Privacy & Offline Use
+## Privacy & Offline Use
 
 This app runs **entirely locally** — your ideas are not sent to the cloud.
 It uses Ollama and LLaMA 3, no API keys or internet connection required after model download.
