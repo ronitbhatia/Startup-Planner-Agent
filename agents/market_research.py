@@ -3,26 +3,28 @@ import re
 from tools.ollama_runner import run_ollama
 
 def run_market_research(parsed_idea: dict) -> dict:
-    industry = parsed_idea.get("industry", "a general business domain")
-    solution = parsed_idea.get("solution", "")
-    target = parsed_idea.get("target_user", "")
+    industry = parsed_idea.get("industry", "technology and services")
+    solution = parsed_idea.get("solution", "A tech platform that solves a customer need.")
+    target = parsed_idea.get("target_user", "end users or businesses")
 
     prompt = f"""
-You are a startup business researcher.
+You are a startup market researcher.
 
-Given the following startup idea in the {industry} industry:
+Given this business idea:
 
+Industry: {industry}  
 Target Users: {target}  
 Solution: {solution}
 
-Please provide the following in **valid JSON format only**:
+Please return only the following JSON structure:
+
 {{
-  "competitors": ["List of 3–5 direct or indirect competitors"],
-  "market_size": "Estimated market size with year and source if known",
-  "trends": ["3–5 industry trends relevant to this business"]
+  "competitors": ["List of 3–5 relevant companies or platforms"],
+  "market_size": "Estimated market size (include year + source if possible)",
+  "trends": ["List 3–5 relevant trends in this industry"]
 }}
 
-Do not include any commentary. Only return valid JSON.
+Only return valid JSON. No commentary or extra output.
 """
 
     output = run_ollama(prompt)
@@ -30,7 +32,18 @@ Do not include any commentary. Only return valid JSON.
     try:
         json_block = re.search(r"\{[\s\S]*\}", output).group(0)
         parsed = json.loads(json_block)
+
+        # Ensure all expected keys exist
+        required_keys = ["competitors", "market_size", "trends"]
+        if not all(k in parsed for k in required_keys):
+            raise ValueError("Missing keys in market research")
+
     except Exception:
-        parsed = {"raw_output": output}
+        parsed = {
+            "competitors": [],
+            "market_size": "",
+            "trends": [],
+            "raw_output": output
+        }
 
     return parsed
