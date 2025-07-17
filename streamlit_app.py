@@ -16,23 +16,27 @@ idea = st.text_area("Enter your startup idea:", height=150)
 if st.button("Run All Agents") and idea.strip():
     with st.spinner("Thinking..."):
         parsed = parse_startup_idea(idea)
+        if not parsed.get("industry"):
+            st.error("❌ Step 1 failed to parse the startup idea. Please try rephrasing it.")
+            st.stop()
+
         market = run_market_research(parsed)
+        if not market.get("competitors"):
+            st.error("❌ Step 2 (Market Research) failed. Try a different idea.")
+            st.stop()
+
         swot = generate_swot(parsed, market)
+        if not swot.get("strengths"):
+            st.warning("⚠️ Step 3 (SWOT Analysis) might be incomplete.")
+
         mvp = create_mvp_plan(parsed, swot)
+        if not mvp.get("features"):
+            st.warning("⚠️ Step 4 (MVP Planner) might be incomplete.")
 
-    # Combined result for download
-    full_result = {
-        "idea": idea,
-        "parsed": parsed,
-        "market": market,
-        "swot": swot,
-        "mvp": mvp,
-    }
+    st.success("✅ Done! Here's your startup plan:")
 
-    st.success("Done! Here's your startup plan:")
-
-    # Step 1: Parsed Idea
-    with st.expander("Step 1: Idea Parser"):
+    # STEP 1 — IDEA PARSER
+    with st.expander("Step 1: Idea Parser", expanded=True):
         st.markdown(f"""
 **Industry**: {parsed.get('industry', '')}  
 **Target Users**: {parsed.get('target_user', '')}  
@@ -41,27 +45,27 @@ if st.button("Run All Agents") and idea.strip():
 **Monetization**: {parsed.get('monetization', '')}
 """)
 
-    # Step 2: Market Research
-    with st.expander("Step 2: Market Research"):
+    # STEP 2 — MARKET RESEARCH
+    with st.expander("Step 2: Market Research", expanded=True):
         st.markdown("**Competitors:**")
         st.markdown("- " + "\n- ".join(market.get("competitors", [])))
         st.markdown(f"\n**Market Size:** {market.get('market_size', '')}")
         st.markdown("\n**Trends:**")
         st.markdown("- " + "\n- ".join(market.get("trends", [])))
 
-    # Step 3: SWOT Analysis
-    with st.expander("Step 3: SWOT Analysis"):
-        for category in ["strengths", "weaknesses", "opportunities", "threats"]:
-            st.markdown(f"**{category.capitalize()}:**")
-            st.markdown("- " + "\n- ".join(swot.get(category, [])))
+    # STEP 3 — SWOT ANALYSIS
+    with st.expander("Step 3: SWOT Analysis", expanded=True):
+        for key in ["strengths", "weaknesses", "opportunities", "threats"]:
+            st.markdown(f"**{key.capitalize()}:**")
+            st.markdown("- " + "\n- ".join(swot.get(key, [])))
 
-    # Step 4: MVP Plan
-    with st.expander("Step 4: MVP Planner"):
+    # STEP 4 — MVP PLANNER
+    with st.expander("Step 4: MVP Planner", expanded=True):
         st.markdown("**Key Features:**")
         st.markdown("- " + "\n- ".join(mvp.get("features", [])))
 
         tech = mvp.get("tech_stack", {})
-        st.markdown("\n**Tech Stack:**")
+        st.markdown("**Tech Stack:**")
         st.markdown(f"""
 - **Frontend**: {tech.get('frontend', '')}  
 - **Backend**: {tech.get('backend', '')}  
@@ -70,21 +74,29 @@ if st.button("Run All Agents") and idea.strip():
 """)
 
         st.markdown(f"\n**Timeline**: {mvp.get('timeline', '')}")
-        st.markdown("\n**Risks:**")
+        st.markdown("**Risks:**")
         st.markdown("- " + "\n- ".join(mvp.get("risks", [])))
 
-    # Download as JSON
+    # COMBINE OUTPUT FOR DOWNLOAD
+    full_result = {
+        "idea": idea,
+        "parsed": parsed,
+        "market": market,
+        "swot": swot,
+        "mvp": mvp,
+    }
+
     st.download_button(
-        label="Download as JSON",
+        label="📁 Download JSON",
         data=json.dumps(full_result, indent=2),
         file_name="startup_plan.json",
         mime="application/json"
     )
 
-    # Download as TXT
+    # Generate text version
     text_output = f"""Startup Idea: {idea}
 
-Step 1: Parsed Idea
+Step 1: Idea Parser
 -------------------
 Industry: {parsed.get('industry', '')}
 Target Users: {parsed.get('target_user', '')}
@@ -127,7 +139,7 @@ Risks:
 """
 
     st.download_button(
-        label="Download as TXT",
+        label="📄 Download Text",
         data=text_output,
         file_name="startup_plan.txt",
         mime="text/plain"
